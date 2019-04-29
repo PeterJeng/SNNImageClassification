@@ -1,23 +1,14 @@
 import os
 from PIL import Image
 
-if __name__ == '__main__':
-    rootDir = 'images/'
-    for dirName, subdirList, fileList in os.walk(rootDir):
-        for fileN in fileList:
-            dirNameSplit = dirName.split('-')
-            dogType = dirNameSplit[1]
-
 
 class LifNeuron:
-    def __init__(self, w1, w2, w3):
-        self.w1 = w1
-        self.w2 = w2
-        self.w3 = w3
+    def __init__(self, weights):
+        self.weights = weights
         self.avg_rate = 0
         self.num_occur = 0
 
-    def run(self, current1, current2, current3):
+    def run(self, current):
         resistance = 0.7
         capacitor = 1
         time_constant = resistance * capacitor
@@ -26,7 +17,6 @@ class LifNeuron:
         end_time = 5
 
         # Increase steady input current after each test
-        current = (current1 * self.w1) + (current2 * self.w2) + (current3 * self.w3)
         current_constant = 0.15
         cur_voltage = 0
         cur_time = 0
@@ -51,7 +41,7 @@ class LifNeuron:
         weight_coeff = 0.000001
         min_weight = 0.25
         dif_weight = weight_coeff * (vi - i_avg) * (vj - j_avg)
-
+        '''
         if weight_num == 1:
             max_weight = 1.0 - self.w2 - self.w3
             self.w1 += dif_weight
@@ -73,10 +63,23 @@ class LifNeuron:
                 self.w3 = min_weight
             elif self.w3 > max_weight:
                 self.w3 = max_weight
+        '''
+
+
+class NeuralNetwork:
+    def __init__(self):
+        self.layer1 = []
 
 
 if __name__ == '__main__':
-    # TODO Create initial neural network
+    image_width = 500
+    image_height = 333
+    # Set up neural network
+    network = NeuralNetwork()
+    for row in range(0, image_height):
+        network.layer1.append([])
+        for col in range(0, image_width):
+            network.layer1[row].append(LifNeuron(0))
 
     # Traverse images in image_resized folder
     rootDir = 'images/'
@@ -86,9 +89,11 @@ if __name__ == '__main__':
             dirNameSplit = dirName.split('-')
             dogName = dirNameSplit[1]
 
-            # Get greyscale value of each pixel in image
+            # Convert image into black and white. Rescale to 500x333 image
             newDirName = dirName.replace('\\', '/')
             img = Image.open(newDirName + '/' + fileN)
+            img = img.resize((image_width, image_height), PIL.Image.ANTIALIAS)
+            img = img.convert('L')
             WIDTH, HEIGHT = img.size
             data = list(img.getdata())
             data = [data[offset:offset + WIDTH] for offset in range(0, WIDTH * HEIGHT, WIDTH)]
@@ -98,3 +103,6 @@ if __name__ == '__main__':
                 for value in row:
                     # TODO run through network
                     print(value)
+
+
+    # TODO After training, test with user images (or run through images again and check accuracy)

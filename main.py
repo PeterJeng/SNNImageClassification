@@ -77,7 +77,7 @@ def brian_example():
     dge/dt = -ge/(5*ms)                : volt
     dgi/dt = -gi/(10*ms)               : volt
     '''
-    P = NeuronGroup(4000, eqs, threshold='v>-50*mV', reset='v=-60*mV')
+    P = NeuronGroup(6600, eqs, threshold='v>-50*mV', reset='v=-60*mV')
     P.v = -60 * mV
     Pe = P[:3200]
     Pi = P[3200:]
@@ -89,6 +89,51 @@ def brian_example():
     run(1 * second)
     plot(M.t / ms, M.i, '.')
     show()
+
+
+def fj_example():
+    # STDP 
+    # 100 x 66
+    N = 6600
+    taum = 10 * ms
+    taupre = 20 * ms
+    taupost = taupre
+    Ee = 0 * mV
+    vt = -54 * mV
+    vr = -60 * mV
+    El = -74 * mV
+    taue = 5 * ms
+    F = 15 * Hz
+    gmax = .01
+    dApre = .01
+    dApost = -dApre * taupre / taupost * 1.05
+    dApost *= gmax
+    dApre *= gmax
+
+    eqs_neurons = '''
+    dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
+    dge/dt = -ge / taue : 1
+    '''
+
+    input = PoissonGroup(N, rates=F)
+    neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
+                          method='exact')
+    S = Synapses(input, neurons,
+                 '''w : 1
+                    dApre/dt = -Apre / taupre : 1 (event-driven)
+                    dApost/dt = -Apost / taupost : 1 (event-driven)''',
+                 on_pre='''ge += w
+                        Apre += dApre
+                        w = clip(w + Apost, 0, gmax)''',
+                 on_post='''Apost += dApost
+                         w = clip(w + Apre, 0, gmax)''',
+                 )
+    S.connect()
+    S.w = 'rand() * gmax'
+    mon = StateMonitor(S, 'w', record=[0, 1])
+    s_mon = SpikeMonitor(input)
+
+    run(100 * second, report='text')
 
 if __name__ == '__main__':
     # image_width = 500
@@ -123,7 +168,6 @@ if __name__ == '__main__':
     #                 # TODO run through network
     #                 print(value)
 
-
-    brian_example()
+    fj_example()
 
     # TODO After training, test with user images (or run through images again and check accuracy)

@@ -72,10 +72,15 @@ class NeuralNetwork:
         self.layer1 = []
 
 def brian_example():
+    '''
     eqs = '''
+
+    '''
     dv/dt  = (ge+gi-(v+49*mV))/(20*ms) : volt
     dge/dt = -ge/(5*ms)                : volt
     dgi/dt = -gi/(10*ms)               : volt
+    '''
+
     '''
     P = NeuronGroup(6600, eqs, threshold='v>-50*mV', reset='v=-60*mV')
     P.v = -60 * mV
@@ -90,11 +95,22 @@ def brian_example():
     plot(M.t / ms, M.i, '.')
     show()
 
+    '''
 
 def fj_example():
-    # STDP 
-    # 100 x 66
-    N = 6600
+    # Training
+    image_width = 100
+    image_height = 66
+
+    # CURRENTLY only using 1 test image. Should use traversal in main to train with all images
+    img = Image.open('test_img.jpg')
+    img = img.resize((image_width, image_height), Image.ANTIALIAS)
+    img = img.convert('L')
+    data = list(img.getdata())
+    for i in range(len(data)):
+        data[i] = (data[i] / 10) * Hz
+
+    N = image_height * image_width
     taum = 10 * ms
     taupre = 20 * ms
     taupost = taupre
@@ -115,8 +131,13 @@ def fj_example():
     dge/dt = -ge / taue : 1
     '''
 
-    input = PoissonGroup(N, rates=F)
-    neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
+    # Input neurons - one for each pixel in the image
+    input = PoissonGroup(N, rates=data)
+    # Output neurons - one for each dog species
+
+    # TODO - Get output neurons to spike the correct neuron cuz I dunno how (maybe add training neurons?)
+
+    neurons = NeuronGroup(120, eqs_neurons, rates=output_rates, threshold='v>vt', reset='v = vr',
                           method='exact')
     S = Synapses(input, neurons,
                  '''w : 1
@@ -133,40 +154,59 @@ def fj_example():
     mon = StateMonitor(S, 'w', record=[0, 1])
     s_mon = SpikeMonitor(input)
 
-    run(100 * second, report='text')
+    run(100 * ms, report='text')
+
+
+    # Testing
+    store('after_learning')
+
+    keep_testing = true
+    while keep_testing:
+        restore('after_learning')
+
+
 
 if __name__ == '__main__':
-    # image_width = 500
-    # image_height = 333
-    # # Set up neural network
-    # network = NeuralNetwork()
-    # for row in range(0, image_height):
-    #     network.layer1.append([])
-    #     for col in range(0, image_width):
-    #         network.layer1[row].append(LifNeuron(0))
-    #
-    # # Traverse images in image_resized folder
-    # rootDir = 'images/'
-    # for dirName, subdirList, fileList in os.walk(rootDir):
-    #     for fileN in fileList:
-    #         # Get dog type from folder name
-    #         dirNameSplit = dirName.split('-')
-    #         dogName = dirNameSplit[1]
-    #
-    #         # Convert image into black and white. Rescale to 500x333 image
-    #         newDirName = dirName.replace('\\', '/')
-    #         img = Image.open(newDirName + '/' + fileN)
-    #         img = img.resize((image_width, image_height), Image.ANTIALIAS)
-    #         img = img.convert('L')
-    #         WIDTH, HEIGHT = img.size
-    #         data = list(img.getdata())
-    #         data = [data[offset:offset + WIDTH] for offset in range(0, WIDTH * HEIGHT, WIDTH)]
-    #
-    #         # For each pixel,
-    #         for row in data:
-    #             for value in row:
-    #                 # TODO run through network
-    #                 print(value)
+    '''
+    image_width = 500
+    image_height = 333
+    # Set up neural network
+    network = NeuralNetwork()
+    for row in range(0, image_height):
+        network.layer1.append([])
+        for col in range(0, image_width):
+            network.layer1[row].append(LifNeuron(0))
+
+    # Traverse images in image_resized folder
+    rootDir = 'images/'
+    # Create list where dogList[i] = dog name for output neuron i
+    dogList = []
+    for dirName, subdirList, fileList in os.walk(rootDir):
+        dirNameSplit = dirName.split('-')
+        if len(dirNameSplit) > 1:
+            dogName = dirNameSplit[1]
+            dogList.append(dogName)
+        for fileN in fileList:
+            # Get dog type from folder name
+            dirNameSplit = dirName.split('-')
+            dogName = dirNameSplit[1]
+            
+            # Convert image into black and white. Rescale to 500x333 image
+            newDirName = dirName.replace('\\', '/')
+            img = Image.open(newDirName + '/' + fileN)
+            img = img.resize((image_width, image_height), Image.ANTIALIAS)
+            img = img.convert('L')
+            WIDTH, HEIGHT = img.size
+            data = list(img.getdata())
+            data = [data[offset:offset + WIDTH] for offset in range(0, WIDTH * HEIGHT, WIDTH)]
+
+            # For each pixel,
+            for row in data:
+                for value in row:
+                    # TODO run through network
+                    print(value)
+                    
+    '''
 
     fj_example()
 

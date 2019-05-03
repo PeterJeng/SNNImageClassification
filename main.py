@@ -9,7 +9,7 @@ if __name__ == '__main__':
     image_width = 100
     image_height = 66
     N = image_height * image_width
-    total_dog_species = 10
+    total_dog_species = 120
 
     taum = 10 * ms
     taupre = 20 * ms
@@ -31,6 +31,13 @@ if __name__ == '__main__':
     dge/dt = -ge / taue : 1
     '''
 
+    eqs = '''
+    dv/dt  = (ge+gi-(v+49*mV))/(20*ms) : volt
+    dge/dt = -ge/(5*ms)                : volt
+    dgi/dt = -gi/(10*ms)               : volt
+    '''
+    output_neurons = NeuronGroup(4000, eqs, threshold='v>-50*mV', reset='v=-60*mV')
+
     # Input neurons - one for each pixel in the image
     input_neurons = PoissonGroup(N, rates=(5 * Hz))
 
@@ -38,28 +45,20 @@ if __name__ == '__main__':
     training_neurons = PoissonGroup(total_dog_species, rates=(5 * Hz))
 
     # Output neurons - one for each dog species
-    output_neurons = NeuronGroup(total_dog_species, eqs_neurons, threshold='v>vt', reset='v = vr', method='exact')
+    output_neurons = NeuronGroup(total_dog_species, eqs, threshold='v>vt', reset='v = vr', method='exact')
 
     S = Synapses(input_neurons, output_neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (event-driven)
                     dApost/dt = -Apost / taupost : 1 (event-driven)''',
-                 on_pre='''ge += w
-                        Apre += dApre
-                        w = clip(w + Apost, 0, gmax)''',
-                 on_post='''Apost += dApost
-                         w = clip(w + Apre, 0, gmax)''',
+                 on_pre='ge+=1.62*mV'
                  )
     S.connect()
     S2 = Synapses(training_neurons, output_neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (event-driven)
                     dApost/dt = -Apost / taupost : 1 (event-driven)''',
-                 on_pre='''ge += w
-                            Apre += dApre
-                            w = clip(w + Apost, 0, gmax)''',
-                 on_post='''Apost += dApost
-                             w = clip(w + Apre, 0, gmax)''',
+                  on_pre='ge+=1.62*mV'
                  )
     # Only connect training neuron to corresponding output neuron
     for x in range(total_dog_species):
@@ -99,7 +98,7 @@ if __name__ == '__main__':
 
             print("Training with image: " + file_name)
 
-            run(10 * ms)
+            run(50 * ms)
 
             print(output_neurons.spikes)
 
@@ -115,7 +114,7 @@ if __name__ == '__main__':
         if len(dir_name_split) > 1:
             dog_name = dir_name_split[1]
             dog_list.append(dog_name)
-            dog_num = len(dogList) - 1
+            dog_num = len(dog_list) - 1
         for file_name in file_list:
             restore('after_learning')
             img = Image.open(dir_name + "/" + file_name)
@@ -127,7 +126,7 @@ if __name__ == '__main__':
 
             input_neurons.rates = data
 
-            run(100 * ms)
+            run(50 * ms)
 
             # Of the output_neurons spiked, check if correct dog species spikes
             spikes = output_neurons.spikes

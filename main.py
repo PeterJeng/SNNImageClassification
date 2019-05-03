@@ -9,6 +9,8 @@ if __name__ == '__main__':
     image_width = 100
     image_height = 66
     N = image_height * image_width
+    total_dog_species = 10
+
     taum = 10 * ms
     taupre = 20 * ms
     taupost = taupre
@@ -33,10 +35,10 @@ if __name__ == '__main__':
     input_neurons = PoissonGroup(N, rates=(5 * Hz))
 
     # Training neurons - correct dog image has higher rate of 15Hz, other neurons have 5Hz
-    training_neurons = PoissonGroup(120, rates=(5 * Hz))
+    training_neurons = PoissonGroup(total_dog_species, rates=(5 * Hz))
 
     # Output neurons - one for each dog species
-    output_neurons = NeuronGroup(120, eqs_neurons, threshold='v>vt', reset='v = vr', method='exact')
+    output_neurons = NeuronGroup(total_dog_species, eqs_neurons, threshold='v>vt', reset='v = vr', method='exact')
 
     S = Synapses(input_neurons, output_neurons,
                  '''w : 1
@@ -60,7 +62,7 @@ if __name__ == '__main__':
                              w = clip(w + Apre, 0, gmax)''',
                  )
     # Only connect training neuron to corresponding output neuron
-    for x in range(120):
+    for x in range(total_dog_species):
         S2.connect(i=x, j=x)
 
     S.w = 'rand() * gmax'
@@ -89,7 +91,7 @@ if __name__ == '__main__':
 
             # Training inputs. All inputs give 5Hz except for correct output neuron, which gives 15Hz
             # dog_num corresponds to the correct output neuron
-            training_inputs = [5 * Hz] * 120
+            training_inputs = [5 * Hz] * total_dog_species
             training_inputs[dog_num] = 15 * Hz
 
             input_neurons.rates = data
@@ -99,9 +101,14 @@ if __name__ == '__main__':
 
             run(10 * ms)
 
+            print(output_neurons.spikes)
+
     # TESTING
     # Test with training data
     store('after_learning')
+
+    tests_correct = 0.0
+    tests_total = 0.0
 
     for dir_name, subdir_list, file_list in os.walk(root_dir):
         dir_name_split = dir_name.split('-')
@@ -116,12 +123,25 @@ if __name__ == '__main__':
             img = img.convert('L')
             data = list(img.getdata())
 
+            tests_total += 1
+
             input_neurons.rates = data
 
             run(100 * ms)
 
-            # TODO - Find output neuron with most spikes(?) to determine which output neuron corresponds with image
-            # If dog_num == most spiked output_neuron, then correct dog. Else wrong dog
+            # Of the output_neurons spiked, check if correct dog species spikes
+            spikes = output_neurons.spikes
+            i = 0
+            while i < len(spikes) and spikes[i] <= dog_num:
+                # Correct output neuron spiked
+                if spikes[i] == dog_num:
+                    tests_correct += 1
+                    i = len(spikes)
+                else:
+                    i += 1
+
+    print("Using testing data, the network correctly identified: " + str(tests_correct / tests_total) +
+          "% of the images")
 
 
 def brian_example():

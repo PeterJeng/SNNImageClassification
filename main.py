@@ -9,7 +9,7 @@ if __name__ == '__main__':
     image_width = 100
     image_height = 66
     N = image_height * image_width
-    total_dog_species = 120
+    total_dog_species = 5
 
     taum = 10 * ms
     taupre = 20 * ms
@@ -71,6 +71,7 @@ if __name__ == '__main__':
     # TRAINING
     # Traverse images in image_resized folder
     root_dir = 'images/'
+    counter = 0
     # Create list where dogList[i] = dog name for output neuron i
     dog_list = []
     for dir_name, subdir_list, file_list in os.walk(root_dir):
@@ -79,28 +80,30 @@ if __name__ == '__main__':
             dog_name = dir_name_split[1]
             dog_list.append(dog_name)
             dog_num = len(dog_list) - 1
-        for file_name in file_list:
-            img = Image.open(dir_name + "/" + file_name)
-            img = img.resize((image_width, image_height), Image.ANTIALIAS)
-            img = img.convert('L')
-            data = list(img.getdata())
-            # Get value of pixel, divide it by 10 for input value
-            for i in range(len(data)):
-                data[i] = (data[i] / 10) * Hz
+            counter += 1
+        if counter <= total_dog_species:
+            for file_name in file_list:
+                img = Image.open(dir_name + "/" + file_name)
+                img = img.resize((image_width, image_height), Image.ANTIALIAS)
+                img = img.convert('L')
+                data = list(img.getdata())
+                # Get value of pixel, divide it by 10 for input value
+                for i in range(len(data)):
+                    data[i] = (data[i] / 10) * Hz
 
-            # Training inputs. All inputs give 5Hz except for correct output neuron, which gives 15Hz
-            # dog_num corresponds to the correct output neuron
-            training_inputs = [5 * Hz] * total_dog_species
-            training_inputs[dog_num] = 15 * Hz
+                # Training inputs. All inputs give 5Hz except for correct output neuron, which gives 15Hz
+                # dog_num corresponds to the correct output neuron
+                training_inputs = [5 * Hz] * total_dog_species
+                training_inputs[dog_num] = 30 * Hz
 
-            input_neurons.rates = data
-            training_neurons.rates = training_inputs
+                input_neurons.rates = data
+                training_neurons.rates = training_inputs
 
-            print("Training with image: " + file_name)
+                print("Training with image: " + file_name)
 
-            run(50 * ms)
+                run(50 * ms)
 
-            print(output_neurons.spikes)
+                print(output_neurons.spikes)
 
     # TESTING
     # Test with training data
@@ -109,35 +112,44 @@ if __name__ == '__main__':
     tests_correct = 0.0
     tests_total = 0.0
 
+    counter = 0
     for dir_name, subdir_list, file_list in os.walk(root_dir):
         dir_name_split = dir_name.split('-')
         if len(dir_name_split) > 1:
             dog_name = dir_name_split[1]
             dog_list.append(dog_name)
             dog_num = len(dog_list) - 1
-        for file_name in file_list:
-            restore('after_learning')
-            img = Image.open(dir_name + "/" + file_name)
-            img = img.resize((image_width, image_height), Image.ANTIALIAS)
-            img = img.convert('L')
-            data = list(img.getdata())
+            counter += 1
+        if counter <= total_dog_species:
+            for file_name in file_list:
+                restore('after_learning')
+                img = Image.open(dir_name + "/" + file_name)
+                img = img.resize((image_width, image_height), Image.ANTIALIAS)
+                img = img.convert('L')
+                data = list(img.getdata())
+                for i in range(len(data)):
+                    data[i] = (data[i] / 10) * Hz
 
-            tests_total += 1
+                tests_total += 1.0
 
-            input_neurons.rates = data
+                input_neurons.rates = data
 
-            run(50 * ms)
+                run(20 * ms)
 
-            # Of the output_neurons spiked, check if correct dog species spikes
-            spikes = output_neurons.spikes
-            i = 0
-            while i < len(spikes) and spikes[i] <= dog_num:
-                # Correct output neuron spiked
-                if spikes[i] == dog_num:
-                    tests_correct += 1
-                    i = len(spikes)
-                else:
-                    i += 1
+                # Of the output_neurons spiked, check if correct dog species spikes
+                spikes = output_neurons.spikes
+
+                print("Testing with image: " + file_name + " : dog_num = " + str(dog_num))
+                print(spikes)
+
+                i = 0
+                while i < len(spikes) and spikes[i] <= dog_num:
+                    # Correct output neuron spiked
+                    if spikes[i] == dog_num:
+                        tests_correct += 1.0
+                        i = len(spikes)
+                    else:
+                        i += 1
 
     print("Using testing data, the network correctly identified: " + str(tests_correct / tests_total) +
           "% of the images")

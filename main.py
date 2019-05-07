@@ -132,7 +132,6 @@ if __name__ == '__main__':
             dog_list.append(dog_name)
             dog_num = len(dog_list) - 1
             counter += 1
-        '''
         if counter <= total_dog_species:
             for file_name in file_list:
                 img = Image.open(dir_name + "/" + file_name)
@@ -156,7 +155,6 @@ if __name__ == '__main__':
                 run(50 * ms)
                 img.close()
                 #print(output_neurons.spikes)
-        '''
 	#Save trained synaptic weights
 	# f=open('S.csv','w+')
     # for i in range(N):
@@ -167,7 +165,7 @@ if __name__ == '__main__':
     # f.close()
     # f2=open('S2.csv','w+')
     # for i in range(total_dog_species):
-        # for j in range(4000):
+        # for j in range(total_dog_species):
             # f2.write(monitorS2[S2[i,j]].w[0][len(monitorS2[S2[i,j]].w)])
             # f2.write(',')
         # f2.write('\n')
@@ -208,14 +206,13 @@ if __name__ == '__main__':
                 img.close()
                 # Of the output_neurons spiked, check if correct dog species spikes
                 #spikes = output_neurons.spikes
-                print dog_list[counter-1]
                 print("Testing with image: " + file_name + " : dog_num = " + str(dog_num))
                 #Find output neuron with highest spike frequency
                 maxNeuron=np.argmax(outMonitor.count)
                 #maxCount=np.max(outMonitor.count)
                 if maxNeuron==counter-1:
                     tests_correct+=1.0
-
+                print "Guess:",maxNeuron," is:",counter-1 
                 #print(spikes)
                 '''
                 i = 0

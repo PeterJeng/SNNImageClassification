@@ -59,8 +59,6 @@ def brian_example():
 
 if __name__ == '__main__':
     # SETTING UP NETWORK
-    brian_example()
-    exit()
     image_width = 100
     image_height = 66
     N = image_height * image_width
@@ -91,8 +89,6 @@ if __name__ == '__main__':
     dge/dt = -ge/(5*ms)                : volt
     dgi/dt = -gi/(10*ms)               : volt
     '''
-    output_neurons = NeuronGroup(4000, eqs, threshold='v>-50*mV', reset='v=-60*mV')
-
     # Input neurons - one for each pixel in the image
     input_neurons = PoissonGroup(N, rates=(5 * Hz))
 
@@ -110,22 +106,18 @@ if __name__ == '__main__':
                  )
     S.connect()
     S2 = Synapses(training_neurons, output_neurons,
-                 '''w : 1
-                    dApre/dt = -Apre / taupre : 1 (event-driven)
-                    dApost/dt = -Apost / taupost : 1 (event-driven)''',
-                  on_pre='ge+=1.62*mV'
+                 '''w : 1'''
                  )
     # Only connect training neuron to corresponding output neuron
     for x in range(total_dog_species):
         S2.connect(i=x, j=x)
 
     S.w = 'rand() * gmax'
-    S2.w = 'rand() * gmax'
+    S2.w = '1'
 
     #Monitors for synapse weights
-    monitorS=StateMonitor(S,'w',record=True)
-    monitorS2=StateMonitor(S2,'w',record=True)
-
+    #monitorS=StateMonitor(S,'w',record=True)
+    #monitorS2=StateMonitor(S2,'w',record=True)
     # TRAINING
     print "training"
     # Traverse images in image_resized folder
@@ -140,6 +132,7 @@ if __name__ == '__main__':
             dog_list.append(dog_name)
             dog_num = len(dog_list) - 1
             counter += 1
+        '''
         if counter <= total_dog_species:
             for file_name in file_list:
                 img = Image.open(dir_name + "/" + file_name)
@@ -161,29 +154,30 @@ if __name__ == '__main__':
                 print("Training with image: " + file_name)
 
                 run(50 * ms)
-
-                print(output_neurons.spikes)
+                img.close()
+                #print(output_neurons.spikes)
+        '''
 	#Save trained synaptic weights
-	f=open('S.csv','w+')
-    for i in range(N):
-        for j in range(4000):
-            f.write(monitorS[S[i,j]].w[0][len(monitorS[S[i,j]].w)])
-            f.write(',')
-        f.write('\n')
-    f.close()
-    f2=open('S2.csv','w+')
-    for i in range(total_dog_species):
-        for j in range(4000):
-            f2.write(monitorS2[S2[i,j]].w[0][len(monitorS2[S2[i,j]].w)])
-            f2.write(',')
-        f2.write('\n')
-    f2.close()
-
-
-
+	# f=open('S.csv','w+')
+    # for i in range(N):
+        # for j in range(4000):
+            # f.write(monitorS[S[i,j]].w[0][len(monitorS[S[i,j]].w)])
+            # f.write(',')
+        # f.write('\n')
+    # f.close()
+    # f2=open('S2.csv','w+')
+    # for i in range(total_dog_species):
+        # for j in range(4000):
+            # f2.write(monitorS2[S2[i,j]].w[0][len(monitorS2[S2[i,j]].w)])
+            # f2.write(',')
+        # f2.write('\n')
+    # f2.close()
+	
     # TESTING
     print "testing"
     # Test with training data
+    S2.w = '0'
+    outMonitor=SpikeMonitor(output_neurons)
     store('after_learning')
 
     tests_correct = 0.0
@@ -210,17 +204,16 @@ if __name__ == '__main__':
                 tests_total += 1.0
 
                 input_neurons.rates = data
-                outMonitor=SpikeMonitor(output_neurons)
-                run(50 * ms)
-
+                run(25 * ms)
+                img.close()
                 # Of the output_neurons spiked, check if correct dog species spikes
                 #spikes = output_neurons.spikes
-
+                print dog_list[counter-1]
                 print("Testing with image: " + file_name + " : dog_num = " + str(dog_num))
                 #Find output neuron with highest spike frequency
                 maxNeuron=np.argmax(outMonitor.count)
                 #maxCount=np.max(outMonitor.count)
-                if maxNeuron==dog_num:
+                if maxNeuron==counter-1:
                     tests_correct+=1.0
 
                 #print(spikes)

@@ -9,7 +9,9 @@ if __name__ == '__main__':
     image_width = 100
     image_height = 66
     N = image_height * image_width
-    total_dog_species = 5
+    total_dog_species = 120
+    data_reducer = 20.0
+    run_time = 50
 
     taum = 10 * ms
     taupre = 20 * ms
@@ -89,7 +91,7 @@ if __name__ == '__main__':
                 data = list(img.getdata())
                 # Get value of pixel, divide it by 10 for input value
                 for i in range(len(data)):
-                    data[i] = (data[i] / 10) * Hz
+                    data[i] = (data[i] / data_reducer) * Hz
 
                 # Training inputs. All inputs give 5Hz except for correct output neuron, which gives 15Hz
                 # dog_num corresponds to the correct output neuron
@@ -99,9 +101,9 @@ if __name__ == '__main__':
                 input_neurons.rates = data
                 training_neurons.rates = training_inputs
 
-                print("Training with image: " + file_name)
+                print("Training with image: " + file_name + " : dog_num = " + str(dog_num))
 
-                run(50 * ms)
+                run(run_time * ms)
 
                 print(output_neurons.spikes)
 
@@ -113,6 +115,7 @@ if __name__ == '__main__':
     tests_total = 0.0
 
     counter = 0
+    dog_list = []
     for dir_name, subdir_list, file_list in os.walk(root_dir):
         dir_name_split = dir_name.split('-')
         if len(dir_name_split) > 1:
@@ -128,13 +131,13 @@ if __name__ == '__main__':
                 img = img.convert('L')
                 data = list(img.getdata())
                 for i in range(len(data)):
-                    data[i] = (data[i] / 10) * Hz
+                    data[i] = (data[i] / data_reducer) * Hz
 
                 tests_total += 1.0
 
                 input_neurons.rates = data
 
-                run(20 * ms)
+                run(run_time * ms)
 
                 # Of the output_neurons spiked, check if correct dog species spikes
                 spikes = output_neurons.spikes
@@ -153,30 +156,3 @@ if __name__ == '__main__':
 
     print("Using testing data, the network correctly identified: " + str(tests_correct / tests_total) +
           "% of the images")
-
-
-def brian_example():
-    '''
-    eqs = '''
-
-    '''
-    dv/dt  = (ge+gi-(v+49*mV))/(20*ms) : volt
-    dge/dt = -ge/(5*ms)                : volt
-    dgi/dt = -gi/(10*ms)               : volt
-    '''
-
-    '''
-    P = NeuronGroup(6600, eqs, threshold='v>-50*mV', reset='v=-60*mV')
-    P.v = -60 * mV
-    Pe = P[:3200]
-    Pi = P[3200:]
-    Ce = Synapses(Pe, P, on_pre='ge+=1.62*mV')
-    Ce.connect(p=0.02)
-    Ci = Synapses(Pi, P, on_pre='gi-=9*mV')
-    Ci.connect(p=0.02)
-    M = SpikeMonitor(P)
-    run(1 * second)
-    plot(M.t / ms, M.i, '.')
-    show()
-
-    '''
